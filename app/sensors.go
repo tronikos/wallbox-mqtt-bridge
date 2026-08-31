@@ -222,6 +222,7 @@ func getEntities(w *wallbox.Wallbox) map[string]Entity {
 		"temp_l1": {
 			Component: "sensor",
 			Getter:    func() string { return fmt.Sprint(w.TemperatureL1()) },
+			RateLimit: ratelimit.NewDeltaRateLimit(10, 0.5),
 			Config: map[string]string{
 				"name":                        "Temperature Line 1",
 				"unit_of_measurement":         "°C",
@@ -234,6 +235,7 @@ func getEntities(w *wallbox.Wallbox) map[string]Entity {
 		"temp_l2": {
 			Component: "sensor",
 			Getter:    func() string { return fmt.Sprint(w.TemperatureL2()) },
+			RateLimit: ratelimit.NewDeltaRateLimit(10, 0.5),
 			Config: map[string]string{
 				"name":                        "Temperature Line 2",
 				"unit_of_measurement":         "°C",
@@ -246,6 +248,7 @@ func getEntities(w *wallbox.Wallbox) map[string]Entity {
 		"temp_l3": {
 			Component: "sensor",
 			Getter:    func() string { return fmt.Sprint(w.TemperatureL3()) },
+			RateLimit: ratelimit.NewDeltaRateLimit(10, 0.5),
 			Config: map[string]string{
 				"name":                        "Temperature Line 3",
 				"unit_of_measurement":         "°C",
