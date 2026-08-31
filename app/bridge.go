@@ -208,11 +208,24 @@ func RunBridge(configPath string) {
 
 			// Use a timeout instead of blocking forever; a silent network hang
 			// would otherwise freeze the entire poll loop indefinitely.
-			go func(t mqtt.Token, k string) {
-				if !t.WaitTimeout(mqttPublishTimeout) {
-					fmt.Println("Warning: publish timed out for", k)
+			//
+			// On timeout, drop the cache entry so the next tick retries. Without
+			// this the value counts as published even though the broker never
+			// acknowledged it, and HA keeps showing the previous value until the
+			// sensor happens to change again. Only drop the entry if it still
+			// holds the payload we failed to send, so a later successful publish
+			// isn't invalidated by an older token timing out.
+			go func(t mqtt.Token, k, p string) {
+				if t.WaitTimeout(mqttPublishTimeout) {
+					return
 				}
-			}(token, key)
+				fmt.Println("Warning: publish timed out for", k)
+				publishedMu.Lock()
+				defer publishedMu.Unlock()
+				if published[k] == p {
+					delete(published, k)
+				}
+			}(token, key, payload)
 
 			published[key] = payload
 		}
