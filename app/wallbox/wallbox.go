@@ -722,15 +722,31 @@ func (w *Wallbox) TemperatureL1() float64 { return w.temperatureL(0) }
 func (w *Wallbox) TemperatureL2() float64 { return w.temperatureL(1) }
 func (w *Wallbox) TemperatureL3() float64 { return w.temperatureL(2) }
 
-// voltageL
+// voltageL — internal (charger) voltage per phase.
+// Same HasMeterData-invalid-means-zero semantics as chargingPowerL, and the
+// same source priority as powerBoostVoltageL: the 6.8+ meter readings event
+// carries internal_read.line_N.voltage_V, so prefer it over the 6.6+
+// SENSOR_INTERNAL_METER_VOLTAGE_L* telemetry. Without the HasMeterData branch
+// these sensors read 0 on firmware that emits the meter readings event but not
+// the voltage sensor IDs, even though every sibling accessor works.
 func (w *Wallbox) voltageL(phase int) float64 {
 	w.mu.RLock()
-	defer w.mu.RUnlock()
+	hasMeterData := w.HasMeterData
+	hasVoltageData := w.HasVoltageData
+	internal := w.PubSub.Internal[phase].VoltageV
+	voltage := w.PubSub.InternalVoltage[phase]
+	w.mu.RUnlock()
 
-	if !w.HasVoltageData {
+	if hasMeterData {
+		if internal.Valid {
+			return internal.Value
+		}
 		return 0
 	}
-	return w.PubSub.InternalVoltage[phase]
+	if hasVoltageData {
+		return voltage
+	}
+	return 0
 }
 
 func (w *Wallbox) VoltageL1() float64 { return w.voltageL(0) }
