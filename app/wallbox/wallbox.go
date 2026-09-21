@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -678,7 +679,9 @@ func (w *Wallbox) CumulativeAddedEnergy() float64 {
 	w.mu.RUnlock()
 
 	if energy > 0 {
-		return energy
+		// The charged_energy fallback below is an unsigned int, so truncate to
+		// whole Wh to keep this monotonic when it switches between the two.
+		return math.Floor(energy)
 	}
 	w.dataMu.RLock()
 	defer w.dataMu.RUnlock()
